@@ -25,13 +25,16 @@ public class Order extends AbstractAuditEntity {
     private Long id;
 
     @Column(name = "user_id")
-    private Long userId;
+    private String userId;
 
     @Column(name = "payment_id")
     private Long paymentId;
 
     @Column(name = "total_price")
     private BigDecimal totalPrice;
+
+    @Column(name = "total_discount_amount")
+    private float discount;
 
     @Column(name = "order_status")
     @Enumerated(EnumType.STRING)
