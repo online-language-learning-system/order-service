@@ -1,12 +1,13 @@
 package com.hub.order_service.service;
 
 import com.hub.common_library.exception.NotFoundException;
-import com.hub.order_service.grpc.Course;
 import com.hub.order_service.grpc.CourseDetail;
 import com.hub.order_service.grpc.CourseGrpcClient;
 import com.hub.order_service.grpc.CourseListResponse;
+import com.hub.order_service.model.Order;
 import com.hub.order_service.model.dto.OrderItemPostDto;
 import com.hub.order_service.model.dto.OrderPostDto;
+import com.hub.order_service.model.enumeration.OrderStatus;
 import com.hub.order_service.repository.OrderItemRepository;
 import com.hub.order_service.repository.OrderRepository;
 import com.hub.order_service.utils.Constants;
@@ -33,6 +34,7 @@ public class OrderService {
 
     public void createOrder(OrderPostDto orderPostDto) {
 
+        // Get Course from course service
         List<Long> courseIds =
             orderPostDto.orderItemPostDtos().stream()
                 .map(OrderItemPostDto::courseId)
@@ -48,18 +50,31 @@ public class OrderService {
             CourseDetail courseDetail = courseMap.get(orderItemPostDto.courseId());
             if (courseDetail == null)
                 throw new NotFoundException(Constants.ErrorCode.COURSE_NOT_FOUND, orderItemPostDto.courseId());
-            if (!validateCourse(orderItemPostDto, courseDetail))
+            if (!validateRequestCourse(orderItemPostDto, courseDetail))
                 throw new RuntimeException(Constants.ErrorCode.INVALID_COURSE);
         }
 
-
     }
 
-    private boolean validateCourse(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
+    private boolean validateRequestCourse(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
         return orderItemPostDto.courseId().equals(courseDetail.getCourseId())
             && orderItemPostDto.courseTitle().equals(courseDetail.getCourseName())
             && orderItemPostDto.coursePrice().compareTo(BigDecimal.valueOf(courseDetail.getPrice())) == 0;
     }
 
+    public void acceptOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException(Constants.ErrorCode.ORDER_NOT_FOUND, orderId));
+        order.setOrderStatus(OrderStatus.ACCEPTED);
+        orderRepository.save(order);
+    }
+
+    public void rejectOrder(Long orderId, String rejectReason) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException(Constants.ErrorCode.ORDER_NOT_FOUND, orderId));
+        order.setOrderStatus(OrderStatus.REJECT);
+        order.setRejectReason(rejectReason);
+        orderRepository.save(order);
+    }
 
 }

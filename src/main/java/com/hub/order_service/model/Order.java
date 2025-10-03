@@ -40,6 +40,9 @@ public class Order extends AbstractAuditEntity {
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;
 
+    @Column(name = "reject_reason")
+    private String rejectReason;
+
     @OneToMany(mappedBy = "order", orphanRemoval = true)
     List<OrderItem> orderItems = new ArrayList<>();
 
