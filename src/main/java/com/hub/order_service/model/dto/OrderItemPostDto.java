@@ -1,4 +1,11 @@
 package com.hub.order_service.model.dto;
 
-public record OrderItemPostDto() {
+import java.math.BigDecimal;
+
+public record OrderItemPostDto(
+        Long courseId,
+        String courseTitle,
+        BigDecimal coursePrice,
+        BigDecimal discountAmount
+) {
 }
