@@ -8,6 +8,7 @@ import com.hub.order_service.kafka.producer.event.OrderPlacedEvent;
 import com.hub.order_service.kafka.producer.OrderProducer;
 import com.hub.order_service.model.Order;
 import com.hub.order_service.model.OrderItem;
+import com.hub.order_service.model.dto.OrderDetailGetDto;
 import com.hub.order_service.model.dto.OrderItemPostDto;
 import com.hub.order_service.model.dto.OrderPostDto;
 import com.hub.order_service.model.enumeration.OrderStatus;
@@ -27,7 +28,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class OrderService {
 
@@ -36,7 +36,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
-    public void createOrder(OrderPostDto orderPostDto) {
+    @Transactional
+    public OrderDetailGetDto createOrder(OrderPostDto orderPostDto) {
 
         // Get Course from course service
         List<Long> courseIds =
@@ -97,9 +98,14 @@ public class OrderService {
                 .studentId(savedOrder.getUserId())
                 .courseIds(courseIds)
                 .totalPrice(savedOrder.getTotalPrice())
+                .orderStatus(savedOrder.getOrderStatus().toString())
+                .createdOn(savedOrder.getCreatedOn())
+                .paymentMethod("VNPay")
                 .build();
         orderProducer.sendOrder(orderPlacedEvent);
         log.info("The order with id {} created", savedOrder.getId());
+
+        return OrderDetailGetDto.fromModel(savedOrder);
     }
 
     private boolean isMatchingCourseDetail(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
