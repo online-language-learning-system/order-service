@@ -1,10 +1,7 @@
 package com.hub.order_service.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -12,6 +9,7 @@ import java.math.BigDecimal;
 @Table(name = "order_item")
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderItem {
@@ -34,6 +32,6 @@ public class OrderItem {
     private BigDecimal coursePrice;
 
     @Column(name = "discount_amount")
-    private BigDecimal discountAmount;
+    private Float discountAmount;
 
 }

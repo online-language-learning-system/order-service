@@ -6,8 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record OrderPostDto (
-        String userId,
-        float discount,
+        Float discount,
         @NotNull BigDecimal totalPrice,
         @NotNull List<OrderItemPostDto> orderItemPostDtos
 ){

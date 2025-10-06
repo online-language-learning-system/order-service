@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "order")
+@Table(name = "\"order\"", schema = "dbo")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -34,7 +34,7 @@ public class Order extends AbstractAuditEntity {
     private BigDecimal totalPrice;
 
     @Column(name = "total_discount_amount")
-    private float discount;
+    private Float discount;
 
     @Column(name = "order_status")
     @Enumerated(EnumType.STRING)

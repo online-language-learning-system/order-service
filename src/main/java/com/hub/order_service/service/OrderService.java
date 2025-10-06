@@ -4,7 +4,10 @@ import com.hub.common_library.exception.NotFoundException;
 import com.hub.order_service.grpc.CourseDetail;
 import com.hub.order_service.grpc.CourseGrpcClient;
 import com.hub.order_service.grpc.CourseListResponse;
+import com.hub.order_service.kafka.producer.event.OrderPlacedEvent;
+import com.hub.order_service.kafka.producer.OrderProducer;
 import com.hub.order_service.model.Order;
+import com.hub.order_service.model.OrderItem;
 import com.hub.order_service.model.dto.OrderItemPostDto;
 import com.hub.order_service.model.dto.OrderPostDto;
 import com.hub.order_service.model.enumeration.OrderStatus;
@@ -13,12 +16,12 @@ import com.hub.order_service.repository.OrderRepository;
 import com.hub.order_service.utils.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,9 +31,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
+    private final OrderProducer orderProducer;
+    private final CourseGrpcClient courseGrpcClient;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final CourseGrpcClient courseGrpcClient;
 
     public void createOrder(OrderPostDto orderPostDto) {
 
@@ -39,6 +43,9 @@ public class OrderService {
             orderPostDto.orderItemPostDtos().stream()
                 .map(OrderItemPostDto::courseId)
                 .toList();
+
+        if (courseIds.isEmpty())
+            throw new RuntimeException("No courses exist");
 
         // List<CourseDetail>
         CourseListResponse courseListResponse = courseGrpcClient.getCourseDetail(courseIds);
@@ -50,13 +57,52 @@ public class OrderService {
             CourseDetail courseDetail = courseMap.get(orderItemPostDto.courseId());
             if (courseDetail == null)
                 throw new NotFoundException(Constants.ErrorCode.COURSE_NOT_FOUND, orderItemPostDto.courseId());
-            if (!validateRequestCourse(orderItemPostDto, courseDetail))
+            if (!isMatchingCourseDetail(orderItemPostDto, courseDetail))
                 throw new RuntimeException(Constants.ErrorCode.INVALID_COURSE);
         }
 
+        // Create Order
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        Order order = new Order();
+        order.setOrderStatus(OrderStatus.PENDING);
+        order.setUserId(userId);
+        order.setTotalPrice(BigDecimal.ZERO);
+        Order savedOrder = orderRepository.save(order);     // Save to get order id for OrderItem
+
+        // Create Order Item
+        Set<OrderItem> orderItems = orderPostDto.orderItemPostDtos().stream()
+                .map(
+                    orderItemPostDto -> {
+                        OrderItem orderItem = OrderItem.builder()
+                                .order(savedOrder)
+                                .courseId(orderItemPostDto.courseId())
+                                .courseTitle(orderItemPostDto.courseTitle())
+                                .coursePrice(orderItemPostDto.coursePrice())
+                                .build();
+
+                        // Set OrderItem to Order respectively
+                        savedOrder.getOrderItems().add(orderItem);
+                        savedOrder.setTotalPrice(savedOrder.getTotalPrice().add(orderItem.getCoursePrice()));
+
+                        return orderItem;
+                    })
+                .collect(Collectors.toSet());
+
+        orderItemRepository.saveAll(orderItems);
+        orderRepository.save(savedOrder);
+
+        // Emits event
+        OrderPlacedEvent orderPlacedEvent = OrderPlacedEvent.builder()
+                .orderId(savedOrder.getId())
+                .studentId(savedOrder.getUserId())
+                .courseIds(courseIds)
+                .totalPrice(savedOrder.getTotalPrice())
+                .build();
+        orderProducer.sendOrder(orderPlacedEvent);
+        log.info("The order with id {} created", savedOrder.getId());
     }
 
-    private boolean validateRequestCourse(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
+    private boolean isMatchingCourseDetail(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
         return orderItemPostDto.courseId().equals(courseDetail.getCourseId())
             && orderItemPostDto.courseTitle().equals(courseDetail.getCourseName())
             && orderItemPostDto.coursePrice().compareTo(BigDecimal.valueOf(courseDetail.getPrice())) == 0;
