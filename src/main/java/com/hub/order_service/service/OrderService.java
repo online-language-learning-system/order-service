@@ -4,8 +4,8 @@ import com.hub.common_library.exception.NotFoundException;
 import com.hub.order_service.grpc.CourseDetail;
 import com.hub.order_service.grpc.CourseGrpcClient;
 import com.hub.order_service.grpc.CourseListResponse;
-import com.hub.order_service.kafka.producer.event.OrderPlacedEvent;
-import com.hub.order_service.kafka.producer.OrderProducer;
+import com.hub.order_service.kafka.event.OrderPlacedEvent;
+import com.hub.order_service.kafka.processor.OrderProducer;
 import com.hub.order_service.model.Order;
 import com.hub.order_service.model.OrderItem;
 import com.hub.order_service.model.dto.OrderDetailGetDto;
@@ -102,7 +102,7 @@ public class OrderService {
                 .createdOn(savedOrder.getCreatedOn())
                 .paymentMethod("VNPay")
                 .build();
-        orderProducer.sendOrder(orderPlacedEvent);
+        orderProducer.sendOrderEvent(orderPlacedEvent);
         log.info("The order with id {} created", savedOrder.getId());
 
         return OrderDetailGetDto.fromModel(savedOrder);
@@ -114,19 +114,19 @@ public class OrderService {
             && orderItemPostDto.coursePrice().compareTo(BigDecimal.valueOf(courseDetail.getPrice())) == 0;
     }
 
-    public void acceptOrder(Long orderId) {
+    public Order acceptOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException(Constants.ErrorCode.ORDER_NOT_FOUND, orderId));
         order.setOrderStatus(OrderStatus.ACCEPTED);
-        orderRepository.save(order);
+        return orderRepository.save(order);
     }
 
-    public void rejectOrder(Long orderId, String rejectReason) {
+    public Order rejectOrder(Long orderId, String rejectReason) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException(Constants.ErrorCode.ORDER_NOT_FOUND, orderId));
         order.setOrderStatus(OrderStatus.REJECT);
         order.setRejectReason(rejectReason);
-        orderRepository.save(order);
+        return orderRepository.save(order);
     }
 
 }

@@ -1,4 +1,6 @@
-package com.hub.order_service.kafka.producer.event;
+package com.hub.order_service.kafka.event;
 
-public record OrderCancelledEvent() {
+public record OrderCancelledEvent(
+
+) {
 }

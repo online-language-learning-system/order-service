@@ -87,8 +87,6 @@
 			<version>4.3.0</version>
 		</dependency>
 
-
-
 		<!-- gRPC runtime -->
 		<dependency>
 			<groupId>io.grpc</groupId>
@@ -151,7 +149,6 @@
 				<version>1.7.0</version>
 			</extension>
 		</extensions>
-
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
