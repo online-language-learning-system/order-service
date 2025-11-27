@@ -39,11 +39,6 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
 
-        /*
-            - JWT included Header, Payload, Signature
-            Claim is a key-value pair in payload
-         */
-
         Converter<Jwt, Collection<GrantedAuthority>> jwtGrantedAuthoritiesConverter = jwt -> {
             Map<String, Collection<String>> realmAccess = jwt.getClaim(ACCESS_REALM_CLAIM);
             return realmAccess.get(ROLE_CLAIM)

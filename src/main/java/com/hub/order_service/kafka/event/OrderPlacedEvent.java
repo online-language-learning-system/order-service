@@ -1,4 +1,4 @@
-package com.hub.order_service.kafka.producer.event;
+package com.hub.order_service.kafka.event;
 
 import lombok.*;
 

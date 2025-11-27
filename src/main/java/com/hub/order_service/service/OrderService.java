@@ -1,10 +1,11 @@
 package com.hub.order_service.service;
 
 import com.hub.common_library.exception.NotFoundException;
-import com.hub.order_service.grpc.CourseDetail;
-import com.hub.order_service.grpc.CourseGrpcClient;
-import com.hub.order_service.grpc.CourseListResponse;
-import com.hub.order_service.kafka.producer.event.OrderPlacedEvent;
+//import com.hub.course_service.grpc.CourseDetail;
+//import com.hub.course_service.grpc.CourseListResponse;
+//import com.hub.order_service.grpc.CourseGrpcClient;
+import com.hub.order_service.kafka.event.OrderPlacedEvent;
+import com.hub.order_service.kafka.event.OrderPlacedEvent;
 import com.hub.order_service.kafka.producer.OrderProducer;
 import com.hub.order_service.model.Order;
 import com.hub.order_service.model.OrderItem;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private final OrderProducer orderProducer;
-    private final CourseGrpcClient courseGrpcClient;
+//    private final CourseGrpcClient courseGrpcClient;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
@@ -49,18 +50,18 @@ public class OrderService {
             throw new RuntimeException("No courses exist");
 
         // List<CourseDetail>
-        CourseListResponse courseListResponse = courseGrpcClient.getCourseDetail(courseIds);
-        Map<Long, CourseDetail> courseMap = courseListResponse.getCoursesList().stream()
-                .collect(Collectors.toMap(CourseDetail::getCourseId, Function.identity()));
+//        CourseListResponse courseListResponse = courseGrpcClient.getCourseDetail(courseIds);
+//        Map<Long, CourseDetail> courseMap = courseListResponse.getCoursesList().stream()
+//                .collect(Collectors.toMap(CourseDetail::getCourseId, Function.identity()));
 
         // Course Request Validation
-        for (OrderItemPostDto orderItemPostDto : orderPostDto.orderItemPostDtos()) {
-            CourseDetail courseDetail = courseMap.get(orderItemPostDto.courseId());
-            if (courseDetail == null)
-                throw new NotFoundException(Constants.ErrorCode.COURSE_NOT_FOUND, orderItemPostDto.courseId());
-            if (!isMatchingCourseDetail(orderItemPostDto, courseDetail))
-                throw new RuntimeException(Constants.ErrorCode.INVALID_COURSE);
-        }
+//        for (OrderItemPostDto orderItemPostDto : orderPostDto.orderItemPostDtos()) {
+//            CourseDetail courseDetail = courseMap.get(orderItemPostDto.courseId());
+//            if (courseDetail == null)
+//                throw new NotFoundException(Constants.ErrorCode.COURSE_NOT_FOUND, orderItemPostDto.courseId());
+//            if (!isMatchingCourseDetail(orderItemPostDto, courseDetail))
+//                throw new RuntimeException(Constants.ErrorCode.INVALID_COURSE);
+//        }
 
         // Create Order
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -102,17 +103,17 @@ public class OrderService {
                 .createdOn(savedOrder.getCreatedOn())
                 .paymentMethod("VNPay")
                 .build();
-        orderProducer.sendOrder(orderPlacedEvent);
+        orderProducer.sendOrderPlaced(orderPlacedEvent);
         log.info("The order with id {} created", savedOrder.getId());
 
         return OrderDetailGetDto.fromModel(savedOrder);
     }
 
-    private boolean isMatchingCourseDetail(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
-        return orderItemPostDto.courseId().equals(courseDetail.getCourseId())
-            && orderItemPostDto.courseTitle().equals(courseDetail.getCourseName())
-            && orderItemPostDto.coursePrice().compareTo(BigDecimal.valueOf(courseDetail.getPrice())) == 0;
-    }
+//    private boolean isMatchingCourseDetail(OrderItemPostDto orderItemPostDto, CourseDetail courseDetail) {
+//        return orderItemPostDto.courseId().equals(courseDetail.getCourseId())
+//            && orderItemPostDto.courseTitle().equals(courseDetail.getCourseName())
+//            && orderItemPostDto.coursePrice().compareTo(BigDecimal.valueOf(courseDetail.getPrice())) == 0;
+//    }
 
     public void acceptOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)

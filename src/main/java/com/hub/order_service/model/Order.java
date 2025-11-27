@@ -43,7 +43,16 @@ public class Order extends AbstractAuditEntity {
     @Column(name = "reject_reason")
     private String rejectReason;
 
-    @OneToMany(mappedBy = "order", orphanRemoval = true)
-    List<OrderItem> orderItems = new ArrayList<>();
+    // Liên kết tới các OrderItem
+    @OneToMany(mappedBy = "order", orphanRemoval = true, cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
+    // Phương thức tiện ích để lấy danh sách courseIds
+    @Transient
+    public List<Long> getCourseIds() {
+        if (orderItems == null) return List.of();
+        return orderItems.stream()
+                .map(OrderItem::getCourseId)
+                .toList();
+    }
 }
